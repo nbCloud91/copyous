@@ -37,7 +37,7 @@ export class HistorySettings extends Adw.PreferencesGroup {
 			title: _('History'),
 		});
 
-		this._defaultDatabaseLocation = GLib.build_filenamev([getDataPath(prefs).get_path()!, 'clipboard.db']);
+		this._defaultDatabaseLocation = GLib.build_filenamev([getDataPath(prefs).get_path()!, 'clipboard.json']);
 
 		this._inMemoryDatabase = new Adw.SwitchRow({
 			title: _('Use In-Memory Database'),
@@ -126,7 +126,7 @@ export class HistorySettings extends Adw.PreferencesGroup {
 		const dialog = new Gtk.FileDialog({
 			initial_file: Gio.File.new_for_path(this.databaseLocation),
 			default_filter: new Gtk.FileFilter({
-				patterns: ['*.db'],
+				patterns: ['*.json'],
 			}),
 		});
 
