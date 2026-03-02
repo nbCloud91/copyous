@@ -15,7 +15,6 @@ Gio._promisify(Gtk.FileDialog.prototype, 'open', 'open_finish');
 
 @registerClass({
 	Properties: {
-		'libgda': GObject.ParamSpec.boolean('libgda', null, null, GObject.ParamFlags.WRITABLE, false),
 		'database-location': GObject.ParamSpec.string(
 			'database-location',
 			null,
@@ -43,15 +42,12 @@ export class HistorySettings extends Adw.PreferencesGroup {
 		this._inMemoryDatabase = new Adw.SwitchRow({
 			title: _('Use In-Memory Database'),
 			subtitle: _('Store clipboard history in memory instead of on disk'),
-			active: true,
-			sensitive: false,
 		});
 		this.add(this._inMemoryDatabase);
 
 		this._databaseLocation = new Adw.ActionRow({
 			title: _('Database Location'),
 			activatable: true,
-			sensitive: false,
 		});
 		this._databaseLocation.connect('activated', () => this.openDatabaseLocation(window));
 		this.add(this._databaseLocation);
@@ -62,7 +58,6 @@ export class HistorySettings extends Adw.PreferencesGroup {
 				'Choose what to do with your clipboard history when you restart, log out, or shut down your system',
 			),
 			model: Gtk.StringList.new([_('Clear'), _('Keep Pinned/Tagged'), _('Keep All')]),
-			sensitive: false,
 		});
 		this.add(this._clipboardHistory);
 
@@ -84,6 +79,7 @@ export class HistorySettings extends Adw.PreferencesGroup {
 
 		// Bind properties
 		this._settings = prefs.getSettings();
+		this._settings.bind('in-memory-database', this._inMemoryDatabase, 'active', Gio.SettingsBindFlags.DEFAULT);
 		this._settings.bind('database-location', this, 'database-location', Gio.SettingsBindFlags.DEFAULT);
 		bind_enum(this._settings, 'clipboard-history', this._clipboardHistory, 'selected');
 		this._settings.bind('history-length', historyLength, 'value', Gio.SettingsBindFlags.DEFAULT);
@@ -124,15 +120,6 @@ export class HistorySettings extends Adw.PreferencesGroup {
 		}
 
 		this.notify('database-location');
-	}
-
-	set libgda(installed: boolean) {
-		if (installed) {
-			this._inMemoryDatabase.sensitive = true;
-			this._settings.bind('in-memory-database', this._inMemoryDatabase, 'active', Gio.SettingsBindFlags.DEFAULT);
-		}
-
-		this.notify('libgda');
 	}
 
 	private async openDatabaseLocation(window: Adw.PreferencesWindow): Promise<void> {

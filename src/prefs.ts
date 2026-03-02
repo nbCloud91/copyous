@@ -73,7 +73,6 @@ export default class Preferences extends ExtensionPreferences {
 		window.add(general);
 
 		const history = new HistorySettings(this, window);
-		dependenciesButton.bind_property('libgda', history, 'libgda', GObject.BindingFlags.SYNC_CREATE);
 		general.add(history);
 		const feedback = new FeedbackSettings(this, window);
 		dependenciesButton.bind_property('gsound', feedback, 'gsound', GObject.BindingFlags.SYNC_CREATE);

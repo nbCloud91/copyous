@@ -18,20 +18,6 @@ import {
 import { registerClass } from '../../common/gjs.js';
 import { Icon } from '../../common/icons.js';
 
-async function checkGda(prefs: ExtensionPreferences): Promise<boolean> {
-	try {
-		const Gda = (await import('gi://Gda')).default;
-
-		// Check if SQLite provider is installed
-		Gda.Config.get_provider('SQLite');
-
-		return true;
-	} catch (err) {
-		prefs.getLogger().error((err as Error).message);
-		return false;
-	}
-}
-
 async function checkGSound(): Promise<boolean> {
 	try {
 		await import('gi://GSound');
@@ -304,7 +290,6 @@ export async function downloadHljsLanguage(
 
 @registerClass({
 	Properties: {
-		libgda: GObject.ParamSpec.boolean('libgda', null, null, GObject.ParamFlags.READABLE, false),
 		gsound: GObject.ParamSpec.boolean('gsound', null, null, GObject.ParamFlags.READABLE, false),
 		hljs: GObject.ParamSpec.boolean('hljs', null, null, GObject.ParamFlags.READABLE, false),
 	},
@@ -313,12 +298,11 @@ export async function downloadHljsLanguage(
 	},
 })
 export class DependenciesWarningButton extends Gtk.MenuButton {
-	private _libgda: boolean = false;
 	private _gsound: boolean = false;
 	private _hljs: boolean = false;
 
 	private readonly _menu: Gio.Menu;
-	private _items: string[] = ['libgda', 'gsound', 'hljs'];
+	private _items: string[] = ['gsound', 'hljs'];
 
 	private readonly _cancellable: Gio.Cancellable = new Gio.Cancellable();
 
@@ -327,20 +311,6 @@ export class DependenciesWarningButton extends Gtk.MenuButton {
 			icon_name: Icon.Warning,
 			css_classes: ['flat', 'warning'],
 		});
-
-		const gdaDialog = new GuideDialog(
-			_('Libgda Not Installed'),
-			_(
-				'Libgda is required to store clipboard history between sessions. ' +
-					'Install either libgda 5.0 or 6.0 with SQLite support to use this feature. ' +
-					'After installing libgda you will need to log out or restart your system.',
-			),
-			_('Install Libgda'),
-			'libgda libgda-sqlite',
-			'libgda6',
-			'gir1.2-gda-5.0',
-			'libgda-6_0-sqlite typelib-1_0-Gda-6_0',
-		);
 
 		const gsoundDialog = new GuideDialog(
 			_('GSound Not Installed'),
@@ -413,10 +383,6 @@ export class DependenciesWarningButton extends Gtk.MenuButton {
 		// Menu
 		const actionGroup = new Gio.SimpleActionGroup();
 
-		const libgdaAction = Gio.SimpleAction.new('libgda', null);
-		libgdaAction.connect('activate', () => gdaDialog.present(window));
-		actionGroup.add_action(libgdaAction);
-
 		const gsoundAction = Gio.SimpleAction.new('gsound', null);
 		gsoundAction.connect('activate', () => gsoundDialog.present(window));
 		actionGroup.add_action(gsoundAction);
@@ -428,20 +394,11 @@ export class DependenciesWarningButton extends Gtk.MenuButton {
 		this.insert_action_group('dependencies', actionGroup);
 
 		this._menu = new Gio.Menu();
-		this._menu.append(_('Libgda Not Installed'), 'dependencies.libgda');
 		this._menu.append(_('GSound Not Installed'), 'dependencies.gsound');
 		this._menu.append(_('Highlight.js Not Installed'), 'dependencies.hljs');
 		this.menu_model = this._menu;
 
 		// Checks
-		checkGda(prefs)
-			.then((libgda) => {
-				this._libgda = libgda;
-				if (libgda) this.deleteItem('libgda');
-				this.notify('libgda');
-			})
-			.catch(() => prefs.getLogger().warn('Libgda check failed'));
-
 		checkGSound()
 			.then((gsound) => {
 				this._gsound = gsound;
@@ -466,10 +423,6 @@ export class DependenciesWarningButton extends Gtk.MenuButton {
 				this.notify('hljs');
 			})
 			.catch(() => prefs.getLogger().warn('Highlight.js check failed'));
-	}
-
-	get libgda(): boolean {
-		return this._libgda;
 	}
 
 	get gsound(): boolean {
