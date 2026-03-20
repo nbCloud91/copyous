@@ -35,6 +35,14 @@ import { SearchEntry, SearchQuery } from './searchEntry.js';
 
 const ANIMATION_TIME = 150;
 
+export const OpenClipboardDialogBehavior = {
+	Toggle: 0,
+	OpenOrSelectNext: 1,
+} as const;
+
+export type OpenClipboardDialogBehavior =
+	(typeof OpenClipboardDialogBehavior)[keyof typeof OpenClipboardDialogBehavior];
+
 @registerClass()
 class IncognitoButton extends St.Button {
 	private readonly _incognitoIcon: Gio.Icon;
@@ -427,7 +435,12 @@ export class ClipboardDialog extends St.Widget {
 		this._nextCursor = this._cursor;
 
 		const grab = Main.pushModal(this, { actionMode: Shell.ActionMode.SYSTEM_MODAL }) as Clutter.Grab;
-		if (grab.get_seat_state() !== Clutter.GrabState.ALL) {
+		// GNOME 50 (Mutter 18) removed get_seat_state()/GrabState in favor of is_revoked()
+		const grabFailed =
+			VERSION >= 50
+				? (grab as Clutter.Grab & { is_revoked(): boolean }).is_revoked()
+				: (grab as Clutter.Grab & { get_seat_state(): number }).get_seat_state() !== Clutter.GrabState.ALL;
+		if (grabFailed) {
 			Main.popModal(grab);
 			return;
 		}
@@ -602,6 +615,16 @@ export class ClipboardDialog extends St.Widget {
 		});
 
 		this._scrollView.addItem(item);
+	}
+
+	public dialogShortcut() {
+		const behavior = this.ext.settings.get_enum('open-clipboard-dialog-behavior') as OpenClipboardDialogBehavior;
+		if (behavior === OpenClipboardDialogBehavior.Toggle) {
+			this.toggle();
+		} else if (behavior === OpenClipboardDialogBehavior.OpenOrSelectNext) {
+			if (!this.opened) this.open();
+			else this._scrollView.selectNextItem();
+		}
 	}
 
 	public clearEntries() {
